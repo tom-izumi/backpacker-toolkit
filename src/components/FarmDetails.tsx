@@ -11,20 +11,30 @@ function Field({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-export default function FarmDetails({ farm }: { farm: Farm }) {
+export default function FarmDetails({
+  farm,
+  showHeader = true,
+}: {
+  farm: Farm;
+  showHeader?: boolean;
+}) {
   return (
     <div>
       {/* 1. 頂部：名稱、地區、驗證等級徽章 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{farm.name}</h1>
-          <p className="text-sm text-muted">{farm.region}</p>
+      {showHeader && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{farm.name}</h1>
+            <p className="text-sm text-muted">{farm.region}</p>
+          </div>
+          <VerificationBadge status={farm.verification_status} />
         </div>
-        <VerificationBadge status={farm.verification_status} />
-      </div>
+      )}
 
       {/* 2. 基本資訊區 */}
-      <dl className="mt-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-border bg-surface p-4 sm:grid-cols-2">
+      <dl
+        className={`grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-border bg-surface p-4 sm:grid-cols-2 ${showHeader ? 'mt-6' : ''}`}
+      >
         <Field label="工作類型" value={farm.job_type} />
         <Field label="作物" value={farm.crop} />
         <Field label="產季時間範圍" value={farm.season_range} />
