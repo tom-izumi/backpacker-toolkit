@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import circle from '@turf/circle';
@@ -11,14 +10,21 @@ import type { Farm } from '@/lib/types';
 const CABOOLTURE_CENTER: [number, number] = [152.9503, -27.0853];
 const STANTHORPE_CENTER: [number, number] = [151.9433, -28.6506];
 
+const ACCENT = '#22d3ee';
+
 interface FarmMapProps {
   farms: Farm[];
+  onSelectFarm: (id: string) => void;
 }
 
-export default function FarmMap({ farms }: FarmMapProps) {
+export default function FarmMap({ farms, onSelectFarm }: FarmMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const router = useRouter();
+  const onSelectFarmRef = useRef(onSelectFarm);
+
+  useEffect(() => {
+    onSelectFarmRef.current = onSelectFarm;
+  }, [onSelectFarm]);
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -28,7 +34,7 @@ export default function FarmMap({ farms }: FarmMapProps) {
 
     const map = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/dark-v11',
       center: [
         (CABOOLTURE_CENTER[0] + STANTHORPE_CENTER[0]) / 2,
         (CABOOLTURE_CENTER[1] + STANTHORPE_CENTER[1]) / 2,
@@ -53,6 +59,7 @@ export default function FarmMap({ farms }: FarmMapProps) {
         { padding: 40, duration: 0 },
       );
 
+      // 底層：模糊定位範圍圓圈
       map.addSource('farm-circles', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
@@ -63,8 +70,8 @@ export default function FarmMap({ farms }: FarmMapProps) {
         type: 'fill',
         source: 'farm-circles',
         paint: {
-          'fill-color': '#2563eb',
-          'fill-opacity': 0.25,
+          'fill-color': ACCENT,
+          'fill-opacity': 0.12,
         },
       });
 
@@ -73,76 +80,120 @@ export default function FarmMap({ farms }: FarmMapProps) {
         type: 'line',
         source: 'farm-circles',
         paint: {
-          'line-color': '#2563eb',
+          'line-color': ACCENT,
           'line-width': 1.5,
-          'line-opacity': 0.6,
+          'line-opacity': 0.5,
         },
       });
 
-      map.on('click', 'farm-circles-fill', (e) => {
+      // 上層：群聚標記
+      map.addSource('farm-points', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 12,
+        clusterRadius: 50,
+      });
+
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'farm-points',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': ACCENT,
+          'circle-opacity': 0.85,
+          'circle-radius': [
+            'step',
+            ['get', 'point_count'],
+            16,
+            5,
+            20,
+            10,
+            26,
+          ],
+        },
+      });
+
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'farm-points',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-font': ['DIN Pro Medium', 'Arial Unicode MS Bold'],
+          'text-size': 12,
+        },
+        paint: {
+          'text-color': '#0a0b0d',
+        },
+      });
+
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: 'farm-points',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': ACCENT,
+          'circle-radius': 7,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#0a0b0d',
+        },
+      });
+
+      map.on('click', 'clusters', (e) => {
         const feature = e.features?.[0];
-        if (!feature?.properties) return;
-        const { id, name, crop, job_type } = feature.properties as {
-          id: string;
-          name: string;
-          crop: string;
-          job_type: string;
-        };
-
-        const popupNode = document.createElement('div');
-        popupNode.style.fontFamily = 'inherit';
-        popupNode.style.minWidth = '160px';
-
-        const title = document.createElement('strong');
-        title.style.display = 'block';
-        title.style.marginBottom = '4px';
-        title.textContent = name;
-
-        const subtitle = document.createElement('div');
-        subtitle.style.cssText = 'font-size:13px;color:#555;margin-bottom:8px';
-        subtitle.textContent = `${crop} · ${job_type}`;
-
-        const btn = document.createElement('button');
-        btn.textContent = '查看詳情';
-        btn.style.cssText =
-          'font-size:13px;padding:4px 10px;border-radius:6px;background:#2563eb;color:white;border:none;cursor:pointer';
-        btn.addEventListener('click', () => router.push(`/farms/${id}`));
-
-        popupNode.appendChild(title);
-        popupNode.appendChild(subtitle);
-        popupNode.appendChild(btn);
-
-        new mapboxgl.Popup({ closeButton: true })
-          .setLngLat(e.lngLat)
-          .setDOMContent(popupNode)
-          .addTo(map);
+        if (!feature) return;
+        const clusterId = feature.properties?.cluster_id;
+        const source = map.getSource('farm-points') as mapboxgl.GeoJSONSource;
+        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err || zoom == null) return;
+          const coords = (feature.geometry as GeoJSON.Point).coordinates as [
+            number,
+            number,
+          ];
+          map.easeTo({ center: coords, zoom });
+        });
       });
 
-      map.on('mouseenter', 'farm-circles-fill', () => {
-        map.getCanvas().style.cursor = 'pointer';
+      map.on('click', 'unclustered-point', (e) => {
+        const feature = e.features?.[0];
+        const id = feature?.properties?.id as string | undefined;
+        if (id) onSelectFarmRef.current(id);
       });
-      map.on('mouseleave', 'farm-circles-fill', () => {
-        map.getCanvas().style.cursor = '';
-      });
+
+      for (const layerId of ['clusters', 'unclustered-point']) {
+        map.on('mouseenter', layerId, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', layerId, () => {
+          map.getCanvas().style.cursor = '';
+        });
+      }
     });
 
     return () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const updateSource = () => {
-      const source = map.getSource('farm-circles') as
+    const updateSources = () => {
+      const circleSource = map.getSource('farm-circles') as
         | mapboxgl.GeoJSONSource
         | undefined;
-      if (!source) return;
+      const pointSource = map.getSource('farm-points') as
+        | mapboxgl.GeoJSONSource
+        | undefined;
+      if (!circleSource || !pointSource) return;
 
-      const features = farms.map((farm) =>
+      const circleFeatures = farms.map((farm) =>
         circle([farm.approx_lng, farm.approx_lat], farm.fuzzy_radius_m / 1000, {
           steps: 64,
           units: 'kilometers',
@@ -154,20 +205,31 @@ export default function FarmMap({ farms }: FarmMapProps) {
           },
         }),
       );
+      circleSource.setData({ type: 'FeatureCollection', features: circleFeatures });
 
-      source.setData({ type: 'FeatureCollection', features });
+      const pointFeatures: GeoJSON.Feature<GeoJSON.Point>[] = farms.map((farm) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [farm.approx_lng, farm.approx_lat] },
+        properties: {
+          id: farm.id,
+          name: farm.name,
+          crop: farm.crop,
+          job_type: farm.job_type,
+        },
+      }));
+      pointSource.setData({ type: 'FeatureCollection', features: pointFeatures });
     };
 
     if (map.isStyleLoaded()) {
-      updateSource();
+      updateSources();
     } else {
-      map.once('load', updateSource);
+      map.once('load', updateSources);
     }
   }, [farms]);
 
   if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-slate-100 p-6 text-center text-sm text-slate-500">
+      <div className="flex h-full w-full items-center justify-center bg-surface p-6 text-center text-sm text-muted">
         尚未設定 NEXT_PUBLIC_MAPBOX_TOKEN，地圖無法顯示。
         <br />
         請於 .env.local 補上 Mapbox access token。

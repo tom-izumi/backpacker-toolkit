@@ -10,17 +10,17 @@ export default async function Home() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-lg font-semibold text-slate-900">
+      <header className="border-b border-border bg-surface px-4 py-3">
+        <h1 className="text-lg font-semibold text-foreground">
           Backpacker Toolkit — Farm Map
         </h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           昆士蘭 Caboolture / Stanthorpe 農場資訊（模糊定位，非精確地址）
         </p>
       </header>
 
       {!isSupabaseConfigured && (
-        <div className="bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        <div className="bg-amber-500/10 px-4 py-2 text-sm text-amber-400">
           尚未設定 Supabase 連線資訊，目前僅顯示程式骨架（無資料）。請於 .env.local
           補上 NEXT_PUBLIC_SUPABASE_URL 與 NEXT_PUBLIC_SUPABASE_ANON_KEY。
         </div>

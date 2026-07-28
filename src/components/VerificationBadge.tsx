@@ -3,11 +3,11 @@ import type { VerificationStatus } from '@/lib/types';
 const STYLES: Record<VerificationStatus, { icon: string; className: string }> = {
   已驗證: {
     icon: '✅',
-    className: 'bg-green-100 text-green-800 border-green-300',
+    className: 'bg-green-500/10 text-green-400 border-green-500/30',
   },
   未驗證: {
     icon: '⬜',
-    className: 'bg-slate-100 text-slate-600 border-slate-300',
+    className: 'bg-surface text-muted border-border',
   },
 };
 
