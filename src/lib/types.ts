@@ -1,6 +1,6 @@
 export type Region = 'Caboolture' | 'Stanthorpe';
 
-export type PayMethod = '時薪' | '計件' | '保底計件' | '時薪+計件' | '不確定';
+export type PayMethod = '時薪' | '計件' | '保底計件' | '時薪+計件' | '團體計件' | '不確定';
 
 export type EnglishLevel = '低' | '中' | '高';
 
