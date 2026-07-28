@@ -74,7 +74,11 @@ export default function HomeClient({ farms }: { farms: Farm[] }) {
 
       <div className="flex flex-1 flex-col md:flex-row">
         <div className="h-80 w-full border-b border-border md:h-auto md:w-1/2 md:border-b-0 md:border-r">
-          <FarmMap farms={filteredFarms} onSelectFarm={setSelectedFarmId} />
+          <FarmMap
+            farms={filteredFarms}
+            onSelectFarm={setSelectedFarmId}
+            focusFarm={selectedFarm}
+          />
         </div>
 
         <ul className="w-full divide-y divide-border overflow-y-auto md:w-1/2">

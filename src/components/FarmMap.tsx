@@ -15,9 +15,10 @@ const ACCENT = '#22d3ee';
 interface FarmMapProps {
   farms: Farm[];
   onSelectFarm: (id: string) => void;
+  focusFarm: Farm | null;
 }
 
-export default function FarmMap({ farms, onSelectFarm }: FarmMapProps) {
+export default function FarmMap({ farms, onSelectFarm, focusFarm }: FarmMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const onSelectFarmRef = useRef(onSelectFarm);
@@ -226,6 +227,34 @@ export default function FarmMap({ farms, onSelectFarm }: FarmMapProps) {
       map.once('load', updateSources);
     }
   }, [farms]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusFarm) return;
+
+    const run = () => {
+      // 用模糊定位半徑換算經緯度範圍，讓地圖鏡頭聚焦並縮放到該農場的模糊範圍
+      const latRad = (focusFarm.approx_lat * Math.PI) / 180;
+      const dLat = focusFarm.fuzzy_radius_m / 111320;
+      const dLng =
+        focusFarm.fuzzy_radius_m / (111320 * Math.cos(latRad));
+
+      map.fitBounds(
+        [
+          [focusFarm.approx_lng - dLng, focusFarm.approx_lat - dLat],
+          [focusFarm.approx_lng + dLng, focusFarm.approx_lat + dLat],
+        ],
+        { padding: 80, duration: 900, maxZoom: 15 },
+      );
+    };
+
+    if (map.isStyleLoaded()) {
+      run();
+    } else {
+      map.once('load', run);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusFarm?.id]);
 
   if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
     return (

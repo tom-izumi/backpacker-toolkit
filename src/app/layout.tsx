@@ -28,7 +28,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full flex flex-col">
-        <div data-vaul-drawer-wrapper className="flex h-full flex-col bg-background">
+        <div
+          data-vaul-drawer-wrapper
+          className="flex h-full flex-col bg-background transition-[filter] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        >
           {children}
         </div>
       </body>

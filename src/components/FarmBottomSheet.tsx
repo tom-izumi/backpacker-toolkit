@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Drawer } from 'vaul';
 import Link from 'next/link';
 import type { Farm } from '@/lib/types';
@@ -8,6 +9,11 @@ import VerificationBadge from '@/components/VerificationBadge';
 
 const PEEK_SNAP_POINT = '176px';
 const FULL_SNAP_POINT = 0.94;
+const MAX_BLUR_PX = 14;
+
+function getWrapper(): HTMLElement | null {
+  return document.querySelector('[data-vaul-drawer-wrapper]');
+}
 
 export default function FarmBottomSheet({
   farm,
@@ -16,6 +22,32 @@ export default function FarmBottomSheet({
   farm: Farm | null;
   onClose: () => void;
 }) {
+  const [snap, setSnap] = useState<number | string | null>(PEEK_SNAP_POINT);
+  const [lastFarmId, setLastFarmId] = useState(farm?.id);
+
+  // 每次開啟新的農場都從收合預覽開始（render 期間依 prop 變化調整 state，而非在 effect 內）
+  if (farm?.id !== lastFarmId) {
+    setLastFarmId(farm?.id);
+    setSnap(PEEK_SNAP_POINT);
+  }
+
+  // 停在某個 snap point 時，把背景模糊收斂到該狀態對應的最終值（帶過場動畫）
+  useEffect(() => {
+    const wrapper = getWrapper();
+    if (!wrapper) return;
+    wrapper.style.transition = '';
+    wrapper.style.filter = snap === FULL_SNAP_POINT ? `blur(${MAX_BLUR_PX}px)` : 'blur(0px)';
+  }, [snap]);
+
+  // 完全關閉時立刻讓背景模糊淡出
+  useEffect(() => {
+    if (farm != null) return;
+    const wrapper = getWrapper();
+    if (!wrapper) return;
+    wrapper.style.transition = '';
+    wrapper.style.filter = 'blur(0px)';
+  }, [farm]);
+
   return (
     <Drawer.Root
       open={farm != null}
@@ -23,8 +55,15 @@ export default function FarmBottomSheet({
         if (!open) onClose();
       }}
       snapPoints={[PEEK_SNAP_POINT, FULL_SNAP_POINT]}
-      handleOnly
+      activeSnapPoint={snap}
+      setActiveSnapPoint={setSnap}
       shouldScaleBackground
+      onDrag={(_event, percentageDragged) => {
+        const wrapper = getWrapper();
+        if (!wrapper) return;
+        wrapper.style.transition = 'none';
+        wrapper.style.filter = `blur(${percentageDragged * MAX_BLUR_PX}px)`;
+      }}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/70" />
@@ -56,6 +95,7 @@ export default function FarmBottomSheet({
                     <button
                       type="button"
                       aria-label="關閉"
+                      data-vaul-no-drag
                       className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted hover:text-foreground"
                     >
                       ✕
@@ -68,6 +108,7 @@ export default function FarmBottomSheet({
                 <FarmDetails farm={farm} showHeader={false} />
                 <Link
                   href={`/farms/${farm.id}`}
+                  data-vaul-no-drag
                   className="mt-6 inline-block text-sm text-accent hover:underline"
                 >
                   查看完整頁面 →
