@@ -2,11 +2,11 @@
 -- 於 Supabase SQL Editor 執行（需先執行 0001_schema.sql）
 --
 -- 變更內容：
--- 1. 新增「是否可集章」欄位 can_collect_stamp
+-- 1. 新增「是否可集簽」欄位 can_collect_stamp
 -- 2. 驗證等級簡化：取消「創辦人實地驗證」等四級制，改為「已驗證 / 未驗證」二元狀態
 -- 3. 新增「提供者」欄位 provider，預設值為「站長」
 
--- 1. 是否可集章
+-- 1. 是否可集簽
 alter table farms
   add column can_collect_stamp boolean not null default false;
 

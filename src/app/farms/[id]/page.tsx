@@ -62,28 +62,29 @@ export default async function FarmDetailPage({
         <Field label="住宿" value={farm.accommodation} />
         <Field label="交通" value={farm.transport} />
         <Field label="英文需求程度" value={farm.english_requirement} />
-        <Field label="是否可集章" value={farm.can_collect_stamp ? '可集章' : '不可集章'} />
+        <Field label="是否可集簽" value={farm.can_collect_stamp ? '可集簽' : '不可集簽'} />
         <Field label="提供者" value={farm.provider} />
       </dl>
 
-      {/* 3. 難度評估：明確標註為創辦人主觀評分 */}
+      {/* 3. 難度評估：明確標註為站長主觀評分 */}
       {farm.difficulty_rating != null && (
         <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-1 text-sm font-semibold text-slate-900">難度指標</h2>
           <div className="text-lg tracking-wide text-amber-500">
             {'★'.repeat(farm.difficulty_rating)}
             {'☆'.repeat(5 - farm.difficulty_rating)}
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            此為創辦人主觀評分，非客觀難度指標
+            此為站長主觀評分，非客觀難度指標
           </p>
         </div>
       )}
 
-      {/* 4. 創辦人介紹：敘述性排版，非表格 */}
+      {/* 4. 站長介紹：敘述性排版，非表格 */}
       {farm.founder_notes && (
         <div className="mt-6 rounded-lg border border-blue-100 bg-blue-50/60 p-5">
           <h2 className="mb-2 text-sm font-semibold text-blue-900">
-            創辦人真實心得
+            站長心得
           </h2>
           <p className="whitespace-pre-line leading-relaxed text-slate-700">
             {farm.founder_notes}
